@@ -40,8 +40,8 @@ The application is deployed through GitHub Pages and is used in an actual hospit
 | localStorage | Primary browser-based timestamp persistence |
 | Cookies | Secondary timestamp persistence |
 | IndexedDB | Additional browser-based persistence |
-| Fetch API | Not required; the application is self-contained |
 | Tally.so | External survey form and response collection |
+| Google Sheets | Survey response destination through Tally integration |
 | GitHub Pages | Static website hosting |
 
 ## Architecture and Implementation
@@ -171,7 +171,33 @@ Upon detecting the expected redirect, the application:
 
 The Tally form must be configured to redirect to the appropriate application URL after submission.
 
-### 7. Application State Management
+### 7. Survey Response Data Flow
+
+The application uses Tally.so as its external survey service, with Google Sheets connected through Tally's native integration.
+
+The data flow is:
+
+```text
+Patient
+   |
+   v
+GitHub Pages
+   |
+   v
+Patient Survey Application
+   |
+   v
+Tally.so
+   |
+   v
+Google Sheets
+```
+
+The application itself does not directly communicate with Google Sheets or contain Google Sheets API credentials.
+
+Tally.so handles survey submission and forwards responses to the connected spreadsheet according to its integration configuration.
+
+### 8. Application State Management
 
 The application manages three primary interface states.
 
@@ -183,7 +209,7 @@ The application manages three primary interface states.
 
 State transitions are handled through dedicated JavaScript functions that control the visibility of the corresponding HTML elements.
 
-### 8. Asynchronous Browser Operations
+### 9. Asynchronous Browser Operations
 
 The application uses Promises and async/await to coordinate IndexedDB operations.
 
@@ -316,24 +342,38 @@ The project demonstrates practical application of:
 
 AI assistance supports implementation, but technical direction, code evaluation, and final validation remain essential parts of the development workflow.
 
-## Security and Privacy Considerations
+## Data Handling, Privacy & Security Considerations
 
-The application incorporates multiple browser storage mechanisms for submission-state persistence. However, these mechanisms should not be treated as security controls or verified patient identifiers.
+The application uses a third-party survey service for response collection rather than maintaining its own backend or database.
 
-Important considerations:
+### Data Flow
 
-- Browser storage can be cleared or modified by users.
-- Submission restrictions are limited to the current browser's available storage.
-- Different browsers and devices maintain separate storage environments.
-- Client-side timestamps cannot independently establish patient identity.
-- The optional `postMessage` listener should validate message origins before trusting external messages.
-- Survey responses are processed by Tally.so according to its service configuration and applicable privacy practices.
+1. GitHub Pages hosts the static application.
+2. The application embeds the Tally.so survey.
+3. Patients submit their responses through Tally.so.
+4. Tally.so forwards submissions to the connected Google Sheets spreadsheet through its native integration.
 
-The application does not independently store patient responses or provide server-side submission validation.
+Google Sheets is not directly accessed or configured by the application code.
 
-For stronger submission integrity and healthcare production requirements, centralized persistence, server-side validation, and appropriate access controls would be necessary.
+### Privacy Considerations
 
-The application should not be considered a substitute for a secure, centralized hospital information system.
+- Survey responses are not published through the public website.
+- Access to collected responses is managed through the external service accounts and their respective permissions.
+- The application itself stores submission timestamps in browser storage.
+- Nurse attribution is passed through URL parameters.
+- Patient-identifying information should not be included in public URLs or exposed through the application's source code.
+
+### Compliance Considerations
+
+This project does not independently establish HIPAA compliance.
+
+The use of external services for collecting and storing survey responses requires the hospital to verify applicable privacy, security, contractual, and regulatory requirements.
+
+In particular, the hospital should confirm whether the selected Tally.so and Google Workspace services, account configurations, and applicable Business Associate Agreements are appropriate for the information being collected.
+
+The application should not be used to collect protected health information unless the hospital has approved the complete data-handling arrangement.
+
+The application is a survey interface and does not replace a secure, centralized hospital information system or independently enforce patient data security.
 
 ## Project Scope and Limitations
 
@@ -342,20 +382,38 @@ This project is a lightweight, browser-based survey interface.
 It does not include:
 
 - A dedicated backend application.
-- A centralized database.
+- A centralized application database.
 - Patient authentication or identity verification.
 - Server-side duplicate-submission prevention.
 - Independent survey response processing.
+- Direct Google Sheets API integration.
 - Hospital information system integration.
 
-Survey response collection is handled externally through Tally.so.
+Survey response collection is handled externally through Tally.so and its connected Google Sheets integration.
+
+### Browser Storage Limitations
+
+The three browser storage mechanisms provide redundancy but do not guarantee submission integrity.
+
+Consequently:
+
+- Browser storage can be cleared or modified by users.
+- Submission restrictions are limited to the current browser's available storage.
+- Different browsers and devices maintain separate storage environments.
+- Client-side timestamps cannot independently establish patient identity.
+- The three storage mechanisms do not constitute independent security controls.
+
+For stronger submission integrity, centralized persistence and server-side validation would be necessary.
 
 ## Third-Party Services
 
-The application integrates with:
+The application integrates with the following external services:
 
-- **Tally.so:** External form hosting and survey response collection.
-- **GitHub Pages:** Static website hosting and deployment.
+| Service | Purpose |
+|---|---|
+| Tally.so | External survey hosting and response collection |
+| Google Sheets | Survey response storage through Tally's native integration |
+| GitHub Pages | Static website hosting and deployment |
 
 These services remain subject to their respective terms, privacy policies, and service availability.
 
